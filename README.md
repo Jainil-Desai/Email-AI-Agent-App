@@ -28,7 +28,7 @@ This application handles sensitive information and requires proper security setu
 1. Clone the repository:
    ```bash
    git clone <repository-url>
-   cd email-agent
+   cd Email-AI-Agent-App
    ```
 
 2. Create and activate a virtual environment:
