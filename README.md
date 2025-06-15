@@ -10,95 +10,42 @@ An AI-powered email assistant that helps you manage and respond to your Gmail in
 - Modern web interface
 - Real-time email processing
 
-## Quick Start
-
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd Email-AI-Agent-App
-   ```
-
-2. Create a virtual environment and install dependencies:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-
-3. Create a `.env` file in the root directory and add your Gemini API key:
-   ```
-   GEMINI_API_KEY=your-api-key-here
-   ```
-   Get your API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-
-4. Run the application:
-   ```bash
-   python3 run.py
-   ```
-
-5. Visit `http://localhost:5000` in your browser
-
-## Security Notice
-
-This application handles sensitive information and requires proper security setup:
-
-1. Never commit the following files to version control:
-   - `.env` (contains API keys and secrets)
-   - `credentials/` directory (contains OAuth tokens)
-   - Any `client_secret*.json` files
-   - `token.pkl`
-
-2. Always use environment variables for sensitive data
-3. Keep your API keys and OAuth credentials secure
-
 ## Setup
 
-1. Clone the repository:
+1. Clone and enter the project directory:
    ```bash
    git clone <repository-url>
    cd Email-AI-Agent-App
    ```
 
-2. Create and activate a virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. Install dependencies:
+2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Set up environment variables:
-   - Copy `.env.example` to `.env`
-   - Fill in your actual API keys and secrets in `.env`
-   - Required environment variables:
-     - `GMAIL_CLIENT_ID`: Your Gmail OAuth client ID
-     - `GMAIL_CLIENT_SECRET`: Your Gmail OAuth client secret
-     - `GEMINI_API_KEY`: Your Google Gemini API key (get it from [Google AI Studio](https://makersuite.google.com/app/apikey))
-
-5. Set up Gemini API:
-   - Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
-   - Create a new API key
-   - Add the API key to your `.env` file as `GEMINI_API_KEY`
-   - Note: The Gemini API has usage limits and may require billing setup for production use
-
-6. Set up Gmail OAuth:
+3. Set up Gmail API:
    - Go to [Google Cloud Console](https://console.cloud.google.com)
    - Create a new project
    - Enable Gmail API
    - Create OAuth 2.0 credentials
    - Download the client secret JSON file
-   - Rename it to `client_secret.json`
+   - Rename it to `credentials.json`
    - Place it in the `Email-AI-Agent-App/credentials/` directory
 
-7. Run the application:
-   ```bash
-   python3/python run.py
-   ```
+4. Set up Gemini API:
+   - Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - Create a new API key
+   - Create a `.env` file in the root directory (`Email-AI-Agent-App/.env`)
+   - Add your API key:
+     ```
+     GEMINI_API_KEY=your-api-key-here
+     ```
 
-8. Visit `http://localhost:5000` in your browser
+5. Run the application:
+   ```bash
+   python3 run.py
+   ```
+   Visit `http://localhost:5000` in your browser
 
 ## Authorization Flow
 
@@ -115,3 +62,16 @@ After setting up the application, you'll need to authorize it to access your Gma
 6. You'll be redirected back to the application
 7. The application will now be able to access your Gmail account
 8. Note: You can revoke access at any time through your [Google Account Security Settings](https://myaccount.google.com/security)
+
+## Security Notice
+
+This application handles sensitive information and requires proper security setup:
+
+1. Never commit the following files to version control:
+   - `.env` (contains API keys and secrets)
+   - `credentials/` directory (contains OAuth tokens)
+   - Any `client_secret*.json` files
+   - `token.pkl`
+
+2. Always use environment variables for sensitive data
+3. Keep your API keys and OAuth credentials secure
