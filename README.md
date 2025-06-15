@@ -45,8 +45,18 @@ This application handles sensitive information and requires proper security setu
 4. Set up environment variables:
    - Copy `.env.example` to `.env`
    - Fill in your actual API keys and secrets in `.env`
+   - Required environment variables:
+     - `GMAIL_CLIENT_ID`: Your Gmail OAuth client ID
+     - `GMAIL_CLIENT_SECRET`: Your Gmail OAuth client secret
+     - `GEMINI_API_KEY`: Your Google Gemini API key (get it from [Google AI Studio](https://makersuite.google.com/app/apikey))
 
-5. Set up Gmail OAuth:
+5. Set up Gemini API:
+   - Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - Create a new API key
+   - Add the API key to your `.env` file as `GEMINI_API_KEY`
+   - Note: The Gemini API has usage limits and may require billing setup for production use
+
+6. Set up Gmail OAuth:
    - Go to [Google Cloud Console](https://console.cloud.google.com)
    - Create a new project
    - Enable Gmail API
@@ -55,28 +65,25 @@ This application handles sensitive information and requires proper security setu
    - Rename it to `client_secret.json`
    - Place it in the `credentials/` directory
 
-6. Run the application:
+7. Run the application:
    ```bash
-   python run.py
+   python3/python run.py
    ```
 
-7. Visit `http://localhost:5000` in your browser
+8. Visit `http://localhost:5000` in your browser
 
-## Development
+## Authorization Flow
 
-- The application uses Flask for the backend
-- Frontend is built with HTML, Tailwind CSS, and JavaScript
-- Gmail API is used for email access
-- Gemini AI is used for reply suggestions
+After setting up the application, you'll need to authorize it to access your Gmail account:
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details. 
+1. Click the "Connect to Gmail" button on the homepage
+2. You'll be redirected to Google's consent screen
+3. Review the permissions being requested:
+   - Read and send emails
+   - Manage email settings
+   - View email metadata
+4. Sign in with your Google account if not already signed in
+5. Click "Allow" to grant the requested permissions
+6. You'll be redirected back to the application
+7. The application will now be able to access your Gmail account
+8. Note: You can revoke access at any time through your [Google Account Security Settings](https://myaccount.google.com/security)
