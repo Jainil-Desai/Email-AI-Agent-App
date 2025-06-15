@@ -17,10 +17,10 @@ def create_app():
     app.config['SESSION_PERMANENT'] = False
     app.config['SESSION_USE_SIGNER'] = True
     
-    # Configure Gemini API
-    gemini_api_key = os.getenv('GEMINI_API_KEY')
+    # Configure Gemini API - try both methods of getting the API key
+    gemini_api_key = os.environ.get('GEMINI_API_KEY') or os.getenv('GEMINI_API_KEY')
     if not gemini_api_key:
-        raise ValueError("GEMINI_API_KEY environment variable is not set")
+        raise ValueError("GEMINI_API_KEY environment variable is not set. Please set it in your environment or .env file")
     genai.configure(api_key=gemini_api_key)
     
     # Initialize Flask extensions

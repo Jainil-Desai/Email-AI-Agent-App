@@ -10,6 +10,34 @@ An AI-powered email assistant that helps you manage and respond to your Gmail in
 - Modern web interface
 - Real-time email processing
 
+## Quick Start
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd Email-AI-Agent-App
+   ```
+
+2. Create a virtual environment and install dependencies:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+3. Create a `.env` file in the root directory and add your Gemini API key:
+   ```
+   GEMINI_API_KEY=your-api-key-here
+   ```
+   Get your API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+
+4. Run the application:
+   ```bash
+   python3 run.py
+   ```
+
+5. Visit `http://localhost:5000` in your browser
+
 ## Security Notice
 
 This application handles sensitive information and requires proper security setup:
@@ -63,7 +91,7 @@ This application handles sensitive information and requires proper security setu
    - Create OAuth 2.0 credentials
    - Download the client secret JSON file
    - Rename it to `client_secret.json`
-   - Place it in the `credentials/` directory
+   - Place it in the `Email-AI-Agent-App/credentials/` directory
 
 7. Run the application:
    ```bash
