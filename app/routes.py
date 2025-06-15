@@ -81,7 +81,7 @@ def auth():
 
 @main.route('/emails')
 def get_emails():
-    """Get unread emails with summaries"""
+    """Get unread emails with enhanced analysis"""
     if not all([gmail_client, llm_responder, file_processor]):
         init_services()
     
@@ -90,14 +90,33 @@ def get_emails():
         summaries = []
         
         for email in emails:
-            # Get attachments
+            # Get attachments and process them
             attachments = gmail_client.get_attachments(email['id'])
-            attachment_text = "\n".join([file_processor.extract_text(f) for f in attachments])
+            attachment_summaries = []
+            
+            for attachment in attachments:
+                file_type = attachment.split('.')[-1].lower()
+                summary = llm_responder.process_attachment(attachment, file_type)
+                attachment_summaries.append({
+                    'filename': attachment.split('/')[-1],
+                    'summary': summary,
+                    'sentiment': llm_responder.detect_sentiment(summary)
+                })
+            
+            # Analyze email priority
+            priority_analysis = llm_responder.analyze_email_priority(
+                email['subject'],
+                email['body'],
+                email['from']
+            )
+            
+            # Analyze sentiment
+            sentiment_analysis = llm_responder.detect_sentiment(email['body'])
             
             # Generate summary
-            summary = llm_responder.summarize_email_with_attachments(
-                email['body'], 
-                attachment_text
+            summary = llm_responder.summarize_text(
+                email['body'],
+                prefix="Summarize this email and extract key points:"
             )
             
             summaries.append({
@@ -106,30 +125,65 @@ def get_emails():
                 'subject': email['subject'],
                 'body': email['body'],
                 'summary': summary,
-                'attachments': [f.split('/')[-1] for f in attachments]
+                'priority_analysis': priority_analysis,
+                'sentiment': sentiment_analysis,
+                'attachments': attachment_summaries,
+                'suggested_response_time': priority_analysis['suggested_response_time']
             })
         
-        # Rank emails by importance
+        # Rank emails by importance with enhanced analysis
         ranked_indices = llm_responder.rank_emails_by_importance(summaries)
         ranked_emails = [summaries[i] for i in ranked_indices]
         
-        return jsonify({'status': 'success', 'emails': ranked_emails})
+        return jsonify({
+            'status': 'success',
+            'emails': ranked_emails,
+            'analysis_summary': {
+                'total_emails': len(ranked_emails),
+                'urgent_count': sum(1 for e in ranked_emails if e['priority_analysis']['urgency_score'] >= 4),
+                'important_count': sum(1 for e in ranked_emails if e['priority_analysis']['importance_score'] >= 4),
+                'sentiment_distribution': {
+                    'positive': sum(1 for e in ranked_emails if e['sentiment']['primary_emotion'] in ['Joy', 'Gratitude', 'Excitement']),
+                    'negative': sum(1 for e in ranked_emails if e['sentiment']['primary_emotion'] in ['Anger', 'Frustration', 'Disappointment']),
+                    'neutral': sum(1 for e in ranked_emails if e['sentiment']['primary_emotion'] in ['Neutral', 'Professional', 'Formal'])
+                }
+            }
+        })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @main.route('/suggest-reply', methods=['POST'])
 def suggest_reply():
-    """Generate reply suggestions for an email"""
+    """Generate personalized reply suggestions with placeholders"""
     if not llm_responder:
         init_services()
     
     try:
         data = request.get_json()
         email_body = data.get('body', '')
+        sender_name = data.get('sender_name')
         num_options = data.get('num_options', 3)
         
-        options = llm_responder.generate_reply_options(email_body, num_options)
-        return jsonify({'status': 'success', 'options': options})
+        options = llm_responder.generate_reply_options(
+            email_body,
+            sender_name=sender_name,
+            num_options=num_options
+        )
+        
+        return jsonify({
+            'status': 'success',
+            'options': options,
+            'placeholders': {
+                'description': 'The following placeholders need to be filled:',
+                'types': {
+                    'NAME': 'Recipient\'s name',
+                    'DATE': 'Specific date',
+                    'TIME': 'Specific time',
+                    'COMPANY': 'Company name',
+                    'DETAILS': 'Additional details'
+                }
+            }
+        })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 

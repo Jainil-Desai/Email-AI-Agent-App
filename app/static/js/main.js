@@ -92,27 +92,139 @@ async function loadEmails() {
 function createEmailCard(email) {
     const div = document.createElement('div');
     div.className = 'email-card bg-white rounded-lg shadow p-6 cursor-pointer';
+
+    // Get priority and sentiment indicators
+    const priority = email.priority_analysis;
+    const sentiment = email.sentiment;
+    const urgencyClass = priority.urgency_score >= 4 ? 'text-red-600' :
+        priority.urgency_score >= 3 ? 'text-orange-600' : 'text-green-600';
+    const importanceClass = priority.importance_score >= 4 ? 'font-bold' : '';
+
     div.innerHTML = `
         <div class="flex justify-between items-start">
-            <div>
-                <h3 class="text-lg font-semibold text-gray-900">${email.subject}</h3>
+            <div class="flex-1">
+                <div class="flex items-center gap-2">
+                    <h3 class="text-lg font-semibold text-gray-900 ${importanceClass}">${email.subject}</h3>
+                    <span class="text-sm ${urgencyClass}">
+                        ${priority.suggested_response_time === 'immediate' ? '⚡' :
+            priority.suggested_response_time === 'within_hour' ? '⏰' :
+                priority.suggested_response_time === 'within_day' ? '📅' : '📌'}
+                    </span>
+                </div>
                 <p class="text-sm text-gray-600 mt-1">From: ${email.from}</p>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="text-sm">${sentiment.emoji} ${sentiment.primary_emotion}</span>
+                    ${sentiment.secondary_emotions.length > 0 ?
+            `<span class="text-xs text-gray-500">(+${sentiment.secondary_emotions.join(', ')})</span>` :
+            ''}
+                </div>
             </div>
-            <button onclick="showReplyModal('${email.id}')" class="text-blue-600 hover:text-blue-800">
-                <i class="fas fa-reply"></i>
-            </button>
+            <div class="flex items-center gap-2">
+                <button onclick="showPriorityDetails('${email.id}')" 
+                    class="text-gray-600 hover:text-gray-800" title="Priority Details">
+                    <i class="fas fa-chart-bar"></i>
+                </button>
+                <button onclick="showReplyModal('${email.id}')" 
+                    class="text-blue-600 hover:text-blue-800" title="Reply">
+                    <i class="fas fa-reply"></i>
+                </button>
+            </div>
         </div>
         <div class="mt-4 text-gray-700">
-            <p class="whitespace-pre-wrap">${email.summary}</p>
+            <div class="prose max-w-none">
+                <h4 class="text-sm font-semibold text-gray-900 mb-2">Summary:</h4>
+                <div class="whitespace-pre-wrap text-sm">${email.summary}</div>
+            </div>
         </div>
         ${email.attachments.length > 0 ? `
-            <div class="mt-4 flex items-center text-sm text-gray-500">
-                <i class="fas fa-paperclip mr-2"></i>
-                ${email.attachments.length} attachment(s)
+            <div class="mt-4 space-y-2">
+                <h4 class="text-sm font-semibold text-gray-900">Attachments:</h4>
+                ${email.attachments.map(att => `
+                    <div class="flex items-start gap-2 p-2 bg-gray-50 rounded">
+                        <i class="fas fa-paperclip text-gray-500 mt-1"></i>
+                        <div class="flex-1">
+                            <div class="text-sm font-medium">${att.filename}</div>
+                            <div class="text-xs text-gray-600 mt-1">${att.summary}</div>
+                            <div class="text-xs text-gray-500 mt-1">
+                                ${att.sentiment.emoji} ${att.sentiment.primary_emotion}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
             </div>
         ` : ''}
+        <div class="mt-4 text-xs text-gray-500">
+            Priority: ${priority.reason}
+        </div>
     `;
     return div;
+}
+
+// Show priority details modal
+function showPriorityDetails(emailId) {
+    const email = currentEmails.find(e => e.id === emailId);
+    if (!email) return;
+
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full';
+    modal.innerHTML = `
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">Priority Analysis</h3>
+                <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-900">Urgency Score</h4>
+                    <div class="mt-1 flex items-center">
+                        <div class="flex-1 bg-gray-200 rounded-full h-2">
+                            <div class="bg-red-600 h-2 rounded-full" style="width: ${email.priority_analysis.urgency_score * 20}%"></div>
+                        </div>
+                        <span class="ml-2 text-sm text-gray-600">${email.priority_analysis.urgency_score}/5</span>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-900">Importance Score</h4>
+                    <div class="mt-1 flex items-center">
+                        <div class="flex-1 bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: ${email.priority_analysis.importance_score * 20}%"></div>
+                        </div>
+                        <span class="ml-2 text-sm text-gray-600">${email.priority_analysis.importance_score}/5</span>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-900">Suggested Response Time</h4>
+                    <p class="mt-1 text-sm text-gray-600">${email.priority_analysis.suggested_response_time.replace('_', ' ')}</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-900">Reason</h4>
+                    <p class="mt-1 text-sm text-gray-600">${email.priority_analysis.reason}</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-900">Emotional Analysis</h4>
+                    <div class="mt-1">
+                        <p class="text-sm text-gray-600">
+                            ${email.sentiment.emoji} Primary: ${email.sentiment.primary_emotion}
+                            (Intensity: ${email.sentiment.intensity}/5)
+                        </p>
+                        ${email.sentiment.secondary_emotions.length > 0 ? `
+                            <p class="text-sm text-gray-500 mt-1">
+                                Secondary: ${email.sentiment.secondary_emotions.join(', ')}
+                            </p>
+                        ` : ''}
+                        ${email.sentiment.triggers.length > 0 ? `
+                            <p class="text-sm text-gray-500 mt-1">
+                                Key triggers: ${email.sentiment.triggers.join(', ')}
+                            </p>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
 }
 
 // Reply modal handling
@@ -136,17 +248,40 @@ async function showReplyModal(emailId) {
         const response = await fetch('/suggest-reply', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ body: selectedEmail.body })
+            body: JSON.stringify({
+                body: selectedEmail.body,
+                sender_name: selectedEmail.from.split('@')[0] // Basic name extraction
+            })
         });
         const data = await response.json();
 
         if (data.status === 'success') {
-            options.innerHTML = data.options.map((opt, i) => `
-                <div class="p-4 border rounded-md hover:bg-gray-50 cursor-pointer" onclick="selectReplyOption(${i})">
-                    <h4 class="font-medium text-gray-900">${opt.subject}</h4>
-                    <p class="mt-2 text-gray-700 whitespace-pre-wrap">${opt.body}</p>
+            // Add placeholder information
+            const placeholderInfo = data.placeholders;
+            options.innerHTML = `
+                <div class="mb-4 p-4 bg-blue-50 rounded-md">
+                    <h4 class="text-sm font-semibold text-blue-900">${placeholderInfo.description}</h4>
+                    <div class="mt-2 space-y-1">
+                        ${Object.entries(placeholderInfo.types).map(([key, desc]) => `
+                            <div class="text-sm">
+                                <span class="font-medium text-blue-700">[${key}]</span>
+                                <span class="text-blue-600">${desc}</span>
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
-            `).join('');
+                ${data.options.map((opt, i) => `
+                    <div class="p-4 border rounded-md hover:bg-gray-50 cursor-pointer" onclick="selectReplyOption(${i})">
+                        <h4 class="font-medium text-gray-900">${opt.subject}</h4>
+                        <p class="mt-2 text-gray-700 whitespace-pre-wrap">${opt.body}</p>
+                        ${opt.placeholders.length > 0 ? `
+                            <div class="mt-2 text-sm text-gray-500">
+                                Placeholders: ${opt.placeholders.join(', ')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('')}
+            `;
         } else {
             throw new Error(data.message);
         }

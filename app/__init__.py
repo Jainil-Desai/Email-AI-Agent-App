@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_session import Session
 from dotenv import load_dotenv
 import os
@@ -29,5 +29,24 @@ def create_app():
     # Register blueprints
     from .routes import main
     app.register_blueprint(main)
+    
+    # Add error handlers
+    @app.errorhandler(403)
+    def handle_403(e):
+        app.logger.error(f"403 error: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'403 Forbidden: {str(e)}',
+            'details': 'Please check your authentication status and try again.'
+        }), 403
+
+    @app.errorhandler(500)
+    def handle_500(e):
+        app.logger.error(f"500 error: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Internal Server Error: {str(e)}',
+            'details': 'An unexpected error occurred. Please try again.'
+        }), 500
     
     return app 

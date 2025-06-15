@@ -45,29 +45,47 @@ class GmailClient:
 
         emails = []
         for msg in messages:
-            msg_data = self.service.users().messages().get(
-                userId='me', id=msg['id'], format='full').execute()
-            payload = msg_data.get('payload', {})
-            headers = payload.get('headers', [])
-
-            subject = next((h['value'] for h in headers if h['name'] == 'Subject'), 'No Subject')
-            sender = next((h['value'] for h in headers if h['name'] == 'From'), 'Unknown Sender')
-
-            parts = payload.get('parts', [])
-            data = payload.get('body', {}).get('data', '')
-            if parts and 'data' in parts[0]['body']:
-                data = parts[0]['body']['data']
             try:
-                decoded_body = base64.urlsafe_b64decode(data.encode('UTF-8')).decode('utf-8', errors='ignore')
-            except Exception:
-                decoded_body = "[Error decoding body]"
+                msg_data = self.service.users().messages().get(
+                    userId='me', id=msg['id'], format='full').execute()
+                payload = msg_data.get('payload', {})
+                headers = payload.get('headers', [])
 
-            emails.append({
-                'id': msg['id'],
-                'subject': subject,
-                'from': sender,
-                'body': decoded_body.strip()
-            })
+                subject = next((h['value'] for h in headers if h['name'] == 'Subject'), 'No Subject')
+                sender = next((h['value'] for h in headers if h['name'] == 'From'), 'Unknown Sender')
+
+                # More robust body extraction
+                body = ""
+                if 'body' in payload and 'data' in payload['body']:
+                    # Direct body data
+                    body = payload['body']['data']
+                elif 'parts' in payload:
+                    # Try to find the first text/plain part
+                    for part in payload['parts']:
+                        if part.get('mimeType') == 'text/plain' and 'data' in part.get('body', {}):
+                            body = part['body']['data']
+                            break
+                        # If no text/plain part found, try any part with data
+                        elif 'data' in part.get('body', {}):
+                            body = part['body']['data']
+                            break
+
+                try:
+                    decoded_body = base64.urlsafe_b64decode(body.encode('UTF-8')).decode('utf-8', errors='ignore')
+                except Exception:
+                    decoded_body = "[Error decoding body]"
+
+                emails.append({
+                    'id': msg['id'],
+                    'subject': subject,
+                    'from': sender,
+                    'body': decoded_body.strip()
+                })
+            except Exception as e:
+                # Log the error but continue processing other emails
+                print(f"Error processing email {msg.get('id')}: {str(e)}")
+                continue
+
         return emails
 
     def get_attachments(self, msg_id):

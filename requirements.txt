@@ -11,4 +11,5 @@ flask-session==0.6.0
 flask-wtf==1.2.1
 email-validator==2.1.0.post1
 gunicorn==21.2.0
-pytz==2024.1 
+pytz==2024.1
+PyPDF2==3.0.1 
