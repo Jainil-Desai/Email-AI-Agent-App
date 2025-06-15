@@ -2,6 +2,24 @@
 let currentEmails = [];
 let selectedEmail = null;
 
+// Upload area state management
+function updateUploadAreaState(isGmailConnected) {
+    const uploadSection = document.getElementById('uploadSection');
+    const uploadArea = document.getElementById('uploadArea');
+    const uploadResult = document.getElementById('uploadResult');
+
+    if (isGmailConnected) {
+        uploadSection.classList.add('gmail-connected');
+        uploadArea.classList.remove('upload-area-normal');
+        uploadArea.classList.add('upload-area-compact');
+        uploadResult.classList.add('hidden');
+    } else {
+        uploadSection.classList.remove('gmail-connected');
+        uploadArea.classList.remove('upload-area-compact');
+        uploadArea.classList.add('upload-area-normal');
+    }
+}
+
 // Auth handling
 document.getElementById('authBtn').addEventListener('click', async () => {
     const authStatus = document.getElementById('authStatus');
@@ -22,6 +40,7 @@ document.getElementById('authBtn').addEventListener('click', async () => {
                 </div>
             `;
             authBtn.classList.add('hidden');
+            updateUploadAreaState(true);
             loadEmails();
         } else if (data.status === 'error' && data.message.includes('Please authenticate at:')) {
             // Extract and show the auth URL
@@ -458,6 +477,123 @@ async function fetchNextEmail() {
         showMessage('Failed to fetch next email: ' + error.message, 'error');
     }
 }
+
+// File Upload Handling
+document.addEventListener('DOMContentLoaded', function () {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const uploadFileName = document.getElementById('uploadFileName');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const uploadResult = document.getElementById('uploadResult');
+
+    // Handle drag and drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('border-blue-500');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('border-blue-500');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('border-blue-500');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileUpload(files[0]);
+            updateUploadAreaState(false);
+        }
+    });
+
+    // Handle click to upload
+    uploadArea.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFileUpload(e.target.files[0]);
+            updateUploadAreaState(false);
+        }
+    });
+
+    async function handleFileUpload(file) {
+        // Show upload status
+        uploadStatus.classList.remove('hidden');
+        uploadFileName.textContent = file.name;
+        uploadResult.classList.add('hidden');
+
+        // Create form data
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/upload-file', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                // Show success result
+                uploadResult.classList.remove('hidden');
+                uploadResult.innerHTML = `
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="flex items-start space-x-3">
+                            <i class="fas fa-check-circle text-green-500 mt-1"></i>
+                            <div class="flex-1">
+                                <h4 class="text-sm font-medium text-green-800">File Processed Successfully</h4>
+                                <div class="mt-2 space-y-4">
+                                    <div>
+                                        <h5 class="text-sm font-medium text-gray-700">Summary:</h5>
+                                        <p class="mt-1 text-sm text-gray-600 whitespace-pre-wrap">${data.file_info.summary}</p>
+                                    </div>
+                                    <div>
+                                        <h5 class="text-sm font-medium text-gray-700">Sentiment Analysis:</h5>
+                                        <div class="mt-1 flex items-center space-x-2">
+                                            <span class="text-2xl">${data.file_info.sentiment.emoji}</span>
+                                            <div>
+                                                <p class="text-sm text-gray-600">${data.file_info.sentiment.primary_emotion}</p>
+                                                ${data.file_info.sentiment.secondary_emotions.length > 0 ?
+                        `<p class="text-xs text-gray-500">Secondary: ${data.file_info.sentiment.secondary_emotions.join(', ')}</p>`
+                        : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            uploadResult.classList.remove('hidden');
+            uploadResult.innerHTML = `
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex items-start space-x-3">
+                        <i class="fas fa-exclamation-circle text-red-500 mt-1"></i>
+                        <div>
+                            <h4 class="text-sm font-medium text-red-800">Upload Failed</h4>
+                            <p class="mt-1 text-sm text-red-600">${error.message}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } finally {
+            // Reset file input
+            fileInput.value = '';
+            // Hide upload status after a delay
+            setTimeout(() => {
+                uploadStatus.classList.add('hidden');
+            }, 2000);
+        }
+    }
+});
 
 // Make functions available globally
 window.showReplyModal = showReplyModal;

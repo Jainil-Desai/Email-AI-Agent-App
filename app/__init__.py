@@ -17,6 +17,10 @@ def create_app():
     app.config['SESSION_PERMANENT'] = False
     app.config['SESSION_USE_SIGNER'] = True
     
+    # Configure upload folder
+    app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    
     # Configure Gemini API - try both methods of getting the API key
     gemini_api_key = os.environ.get('GEMINI_API_KEY') or os.getenv('GEMINI_API_KEY')
     if not gemini_api_key:

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify, request, session, redirect, url_for
+from flask import Blueprint, render_template, jsonify, request, session, redirect, url_for, current_app
 from app.services.gmail import GmailClient
 from app.services.llm import LLMResponder
 from app.services.file_processor import FileProcessor
@@ -9,6 +9,8 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 import base64
+from werkzeug.utils import secure_filename
+import os
 
 main = Blueprint('main', __name__)
 
@@ -306,4 +308,73 @@ def next_email():
         })
         
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500 
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/upload-file', methods=['POST'])
+def upload_file():
+    """Handle file uploads and process them"""
+    if not all([llm_responder, file_processor]):
+        init_services()
+    
+    try:
+        if 'file' not in request.files:
+            return jsonify({'status': 'error', 'message': 'No file provided'}), 400
+            
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'status': 'error', 'message': 'No file selected'}), 400
+            
+        # Secure the filename and get file extension
+        filename = secure_filename(file.filename)
+        file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+        
+        # Check if file type is supported
+        supported_types = {'pdf', 'docx', 'doc', 'txt', 'csv', 'xlsx', 'xls'}
+        if file_ext not in supported_types:
+            return jsonify({
+                'status': 'error',
+                'message': f'Unsupported file type. Supported types are: {", ".join(supported_types)}'
+            }), 400
+            
+        # Ensure upload folder exists
+        upload_folder = current_app.config['UPLOAD_FOLDER']
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder, exist_ok=True)
+            
+        # Save file to uploads directory
+        upload_path = os.path.join(upload_folder, filename)
+        
+        try:
+            file.save(upload_path)
+        except Exception as e:
+            return jsonify({
+                'status': 'error',
+                'message': f'Failed to save file: {str(e)}'
+            }), 500
+            
+        # Process the file
+        try:
+            summary = llm_responder.process_attachment(upload_path, file_ext)
+            sentiment = llm_responder.detect_sentiment(summary)
+        except Exception as e:
+            return jsonify({
+                'status': 'error',
+                'message': f'Failed to process file: {str(e)}'
+            }), 500
+        
+        return jsonify({
+            'status': 'success',
+            'file_info': {
+                'filename': filename,
+                'file_type': file_ext,
+                'summary': summary,
+                'sentiment': sentiment
+            }
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Upload error: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Upload failed: {str(e)}'
+        }), 500 
